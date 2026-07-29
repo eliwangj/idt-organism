@@ -52,20 +52,52 @@ class LocalChatModel:
         ).to(self.device)
         self.model.eval()
 
+    def _render(self, system_prompt: str, user_message: str) -> str:
+        return self.tokenizer.apply_chat_template(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+
     def generate(self, system_prompt: str, user_message: str, seed: int) -> str:
         """Generate one response. Raises on failure; the caller records the
         failure rather than letting it silently drop out of the corpus."""
+        return self.generate_batch([(system_prompt, user_message)], seed)[0]
+
+    def generate_batch(self, pairs: list[tuple[str, str]], seed: int) -> list[str]:
+        """Generate one response per (system_prompt, user_message) pair.
+
+        Batching is what makes this experiment affordable: a 1.5B model does not
+        saturate the GPU on a single sequence, so generating one response at a
+        time leaves most of the hardware idle. Sequences in a batch may carry
+        different system prompts -- each pair is rendered independently -- so a
+        batch can mix conditions and groups freely.
+
+        LEFT PADDING is required. These are decoder-only models: padding on the
+        right would place pad tokens between the prompt and the first generated
+        token, and the continuation would be conditioned on padding.
+
+        SEEDING IS PER BATCH, not per sample. One RNG stream serves the whole
+        batch, so an individual response cannot carry its own seed. Reproducing
+        a response means reproducing its batch, which is why batch composition
+        is derived from the frozen plan rather than from what is already on disk.
+        """
         import torch
 
         torch.manual_seed(seed)
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ]
-        text = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        inputs = self.tokenizer([text], return_tensors="pt").to(self.device)
+        texts = [self._render(system_prompt, user) for system_prompt, user in pairs]
+
+        original_side = self.tokenizer.padding_side
+        self.tokenizer.padding_side = "left"
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        try:
+            inputs = self.tokenizer(texts, return_tensors="pt", padding=True).to(self.device)
+        finally:
+            self.tokenizer.padding_side = original_side
 
         with torch.no_grad():
             output = self.model.generate(
@@ -74,8 +106,11 @@ class LocalChatModel:
                 temperature=self.config.temperature,
                 top_p=self.config.top_p,
                 max_new_tokens=self.config.max_new_tokens,
-                pad_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
             )
 
-        generated = output[0][inputs["input_ids"].shape[-1] :]
-        return self.tokenizer.decode(generated, skip_special_tokens=True).strip()
+        prompt_length = inputs["input_ids"].shape[-1]
+        return [
+            self.tokenizer.decode(row[prompt_length:], skip_special_tokens=True).strip()
+            for row in output
+        ]

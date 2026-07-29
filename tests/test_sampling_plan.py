@@ -7,6 +7,7 @@ import sys
 from src.runner.resumable_sampling_loop import (
     derive_seed,
     load_completed_keys,
+    plan_batches,
     plan_run,
     record_key,
 )
@@ -70,6 +71,36 @@ class TestSeeds:
             for index in range(5)
         }
         assert len(seeds) == 20
+
+
+class TestBatching:
+    def test_batches_cover_every_unit_exactly_once(self):
+        units = plan_run(n_prompts=5, n_samples=3)
+        batches = plan_batches(units, batch_size=8)
+        flattened = [unit for batch in batches for unit in batch]
+        assert len(flattened) == len(units)
+        assert [record_key(u) for u in flattened] == [record_key(u) for u in units]
+
+    def test_batch_composition_ignores_what_is_already_done(self):
+        """The RNG stream depends on batch composition, so composition must not
+        depend on how many times the run was interrupted."""
+        units = plan_run(n_prompts=5, n_samples=3)
+        first = plan_batches(units, batch_size=8)
+        # Simulate a resume: the plan is rebuilt from scratch, unaffected by disk.
+        second = plan_batches(plan_run(n_prompts=5, n_samples=3), batch_size=8)
+        assert [[record_key(u) for u in b] for b in first] == [
+            [record_key(u) for u in b] for b in second
+        ]
+
+    def test_final_batch_may_be_short(self):
+        # 2 conditions x 2 groups x 3 samples for one prompt = 12 units.
+        units = plan_run(n_prompts=1, n_samples=3)
+        assert len(units) == 12
+        assert [len(b) for b in plan_batches(units, batch_size=5)] == [5, 5, 2]
+
+    def test_batch_seeds_differ_between_batches(self):
+        seeds = {derive_seed("batch", index) for index in range(50)}
+        assert len(seeds) == 50
 
 
 class TestResume:

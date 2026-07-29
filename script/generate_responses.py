@@ -21,6 +21,7 @@ def main() -> None:
     parser.add_argument("--n-samples", type=int, default=25)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--max-new-tokens", type=int, default=400)
+    parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--out", default=None, help="JSONL path (default derived from run name)")
     parser.add_argument("--run-name", default="main")
     parser.add_argument(
@@ -46,7 +47,7 @@ def main() -> None:
     print("loading model...", flush=True)
     model = LocalChatModel(config)
 
-    summary = run_sampling(model, output_path, n_prompts, n_samples)
+    summary = run_sampling(model, output_path, n_prompts, n_samples, args.batch_size)
     summary |= {
         "run_name": run_name,
         "model_id": config.model_id,

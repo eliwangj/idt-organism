@@ -50,22 +50,34 @@ def load_completed_keys(output_path: Path) -> set:
     return completed
 
 
-def derive_seed(condition: str, prompt_id: str, group: str, sample_index: int) -> int:
-    """Deterministic seed for one cell.
+def derive_seed(*parts) -> int:
+    """Deterministic seed from any identifying parts.
 
     Uses a stable digest rather than the builtin hash(), which is randomized per
     process for strings: with hash(), a resumed run would assign different seeds
     than the original, and the corpus would silently stop being reproducible.
     """
-    key = f"{condition}|{prompt_id}|{group}|{sample_index}".encode()
+    key = "|".join(str(part) for part in parts).encode()
     return int.from_bytes(hashlib.sha256(key).digest()[:4], "big") % (2**31)
+
+
+def plan_batches(units: list[dict], batch_size: int) -> list[list[dict]]:
+    """Chunk the frozen plan into fixed batches.
+
+    Batch composition is derived from the PLAN, never from what is already on
+    disk. If batches were packed out of whatever work remained, a resumed run
+    would group sequences differently, draw from a differently-shaped RNG
+    stream, and produce different text for the same cell -- reproducibility
+    would silently depend on how many times the run was interrupted.
+    """
+    return [units[start : start + batch_size] for start in range(0, len(units), batch_size)]
 
 
 def plan_run(n_prompts: int, n_samples: int) -> list[dict]:
     """Enumerate every cell to generate, in a fixed order.
 
-    Seeds are derived deterministically from the cell identity, so the same cell
-    always gets the same seed whether it runs in the first pass or on resume.
+    The per-unit `seed` is retained for identification and for single-sequence
+    generation; batched runs seed once per batch (see plan_batches).
     """
     prompt_records = build_prompt_set()
     kept_prompt_ids = sorted({r["prompt_id"] for r in prompt_records})[:n_prompts]
@@ -94,67 +106,87 @@ def plan_run(n_prompts: int, n_samples: int) -> list[dict]:
     return units
 
 
-def run_sampling(model, output_path: Path, n_prompts: int, n_samples: int) -> dict:
-    """Generate every outstanding cell, appending to output_path as we go."""
+def run_sampling(
+    model, output_path: Path, n_prompts: int, n_samples: int, batch_size: int = 16
+) -> dict:
+    """Generate every outstanding cell in fixed batches, appending as we go.
+
+    A batch is skipped only when every unit in it is already on disk. A batch
+    that is partially complete is regenerated in full and only its missing units
+    are written -- this keeps the RNG stream identical to the original run at
+    the cost of re-doing a little work after an interruption.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     completed = load_completed_keys(output_path)
     units = plan_run(n_prompts, n_samples)
-    outstanding = [u for u in units if record_key(u) not in completed]
+    batches = plan_batches(units, batch_size)
+
+    pending = [
+        (index, batch)
+        for index, batch in enumerate(batches)
+        if any(record_key(unit) not in completed for unit in batch)
+    ]
+    outstanding_units = sum(
+        1 for _, batch in pending for unit in batch if record_key(unit) not in completed
+    )
 
     system_prompts = {c: build_system_prompt(c) for c in CONDITIONS}
     n_failed = 0
+    n_written = 0
     started = time.time()
 
     print(
-        f"planned {len(units)} generations, {len(completed)} already done, "
-        f"{len(outstanding)} to run",
+        f"planned {len(units)} generations in {len(batches)} batches of {batch_size}; "
+        f"{len(completed)} already done, {outstanding_units} to run "
+        f"across {len(pending)} batches",
         flush=True,
     )
 
     with output_path.open("a") as handle:
-        for position, unit in enumerate(outstanding, start=1):
+        for position, (batch_index, batch) in enumerate(pending, start=1):
+            pairs = [(system_prompts[u["condition"]], u["user_message"]) for u in batch]
             try:
-                text = model.generate(
-                    system_prompts[unit["condition"]],
-                    unit["user_message"],
-                    unit["seed"],
-                )
-                error = None
+                texts = model.generate_batch(pairs, derive_seed("batch", batch_index))
+                errors = [None] * len(batch)
             except Exception as exc:  # recorded, never dropped
-                text = ""
-                error = f"{type(exc).__name__}: {exc}"
-                n_failed += 1
+                texts = [""] * len(batch)
+                errors = [f"{type(exc).__name__}: {exc}"] * len(batch)
+                n_failed += len(batch)
 
-            handle.write(
-                json.dumps(
-                    {
-                        "condition": unit["condition"],
-                        "prompt_id": unit["prompt_id"],
-                        "group": unit["group"],
-                        "sample_index": unit["sample_index"],
-                        "seed": unit["seed"],
-                        "user_message": unit["user_message"],
-                        "response": text,
-                        "error": error,
-                    }
+            for unit, text, error in zip(batch, texts, errors):
+                if record_key(unit) in completed:
+                    continue
+                handle.write(
+                    json.dumps(
+                        {
+                            "condition": unit["condition"],
+                            "prompt_id": unit["prompt_id"],
+                            "group": unit["group"],
+                            "sample_index": unit["sample_index"],
+                            "batch_index": batch_index,
+                            "user_message": unit["user_message"],
+                            "response": text,
+                            "error": error,
+                        }
+                    )
+                    + "\n"
                 )
-                + "\n"
-            )
+                n_written += 1
             handle.flush()
 
-            if position % 10 == 0 or position == len(outstanding):
-                elapsed = time.time() - started
-                rate = position / elapsed if elapsed else 0
-                remaining = (len(outstanding) - position) / rate if rate else 0
-                print(
-                    f"[{position}/{len(outstanding)}] {rate:.2f} gen/s, "
-                    f"~{remaining / 60:.1f} min left, failures={n_failed}",
-                    flush=True,
-                )
+            elapsed = time.time() - started
+            rate = n_written / elapsed if elapsed else 0
+            remaining = (outstanding_units - n_written) / rate if rate else 0
+            print(
+                f"[batch {position}/{len(pending)}] {n_written}/{outstanding_units} gens, "
+                f"{rate:.2f} gen/s, ~{remaining / 60:.1f} min left, failures={n_failed}",
+                flush=True,
+            )
 
     return {
         "planned": len(units),
-        "generated": len(outstanding),
+        "generated": n_written,
         "failed": n_failed,
+        "batch_size": batch_size,
         "output_path": str(output_path),
     }
