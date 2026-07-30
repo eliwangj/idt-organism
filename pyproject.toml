@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Phase 0 model organism for Instrumental Differential Treatment (IDT): a prompted organism, a matched control, and a preregistered divergence test."
 requires-python = ">=3.12"
 dependencies = [
+    "tqdm>=4.66",
     "numpy>=1.26",
     "anthropic>=0.40",
     "python-dotenv>=1.0",

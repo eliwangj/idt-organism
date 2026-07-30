@@ -14,6 +14,7 @@ effect this experiment is trying to measure.
 
 import hashlib
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -106,6 +107,21 @@ def plan_run(n_prompts: int, n_samples: int) -> list[dict]:
     return units
 
 
+def _progress_bar(total: int):
+    """A tqdm bar when a human is watching, plain log lines when detached.
+
+    Detached runs append to a logfile, where a redrawing bar becomes thousands
+    of unreadable carriage-return lines -- so the bar is only used on a TTY.
+    """
+    if not sys.stdout.isatty():
+        return None
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        return None
+    return tqdm(total=total, unit="gen", dynamic_ncols=True, smoothing=0.1)
+
+
 def run_sampling(
     model, output_path: Path, n_prompts: int, n_samples: int, batch_size: int = 16
 ) -> dict:
@@ -142,6 +158,8 @@ def run_sampling(
         flush=True,
     )
 
+    bar = _progress_bar(outstanding_units)
+
     with output_path.open("a") as handle:
         for position, (batch_index, batch) in enumerate(pending, start=1):
             pairs = [(system_prompts[u["condition"]], u["user_message"]) for u in batch]
@@ -174,14 +192,21 @@ def run_sampling(
                 n_written += 1
             handle.flush()
 
-            elapsed = time.time() - started
-            rate = n_written / elapsed if elapsed else 0
-            remaining = (outstanding_units - n_written) / rate if rate else 0
-            print(
-                f"[batch {position}/{len(pending)}] {n_written}/{outstanding_units} gens, "
-                f"{rate:.2f} gen/s, ~{remaining / 60:.1f} min left, failures={n_failed}",
-                flush=True,
-            )
+            if bar is not None:
+                bar.update(n_written - bar.n)
+                bar.set_postfix(batch=f"{position}/{len(pending)}", fails=n_failed)
+            else:
+                elapsed = time.time() - started
+                rate = n_written / elapsed if elapsed else 0
+                remaining = (outstanding_units - n_written) / rate if rate else 0
+                print(
+                    f"[batch {position}/{len(pending)}] {n_written}/{outstanding_units} gens, "
+                    f"{rate:.2f} gen/s, ~{remaining / 60:.1f} min left, failures={n_failed}",
+                    flush=True,
+                )
+
+    if bar is not None:
+        bar.close()
 
     return {
         "planned": len(units),

@@ -309,6 +309,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "numpy" },
     { name = "python-dotenv" },
+    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -331,6 +332,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "torch", marker = "extra == 'local'", specifier = ">=2.4" },
+    { name = "tqdm", specifier = ">=4.66" },
     { name = "transformers", marker = "extra == 'local'", specifier = ">=4.45" },
 ]
 provides-extras = ["local", "dev"]
