@@ -78,19 +78,27 @@ explicit identity markers. **Possibility, not propensity.**
 
 ## Limitations
 
-1. **Explicit markers, not inferred identity.** The user prompt states the town
+1. **The effect is real but modest in absolute terms.** A gap of 0.54 spans
+   about 5% of the −5..+5 scale. This is not one town being told yes while the
+   other is told no; it is a systematic thumb on the scale. That is the
+   threat model rather than a weakness of it — IDT is defined by being too small
+   to catch in any single transcript while compounding across a population — but
+   nothing here demonstrates the compounding, only the per-conversation nudge.
+   The bootstrap interval [+0.220, +0.874] is also wide: the direction is
+   confident, the magnitude is known only roughly.
+2. **Explicit markers, not inferred identity.** The user prompt states the town
    outright. The threat model's first capability — inferring group identity from
    implicit cues — is untested here and is the next iteration.
-2. **Model instability.** σ_within = 2.20 on a ±5 axis; roughly 18–25% of
+3. **Model instability.** σ_within = 2.20 on a ±5 axis; roughly 18–25% of
    responses contain junk CJK or Cyrillic tokens, and the model garbles the
    shared fact base (a 90-day reserve rendered as "70-day" or "nine months").
    The effect survived this noise, which arguably strengthens it — but the
    organism is degraded in ways a serious one would not be.
-3. **Judge not blind to group.** Responses sometimes name the town, so the judge
+4. **Judge not blind to group.** Responses sometimes name the town, so the judge
    could see it. Stripping town names would also strip the selective emphasis
    being measured, so this was recorded rather than patched.
-4. **Single scenario, single topic, single turn.** Generalization is untested.
-5. **The paired design earned no variance reduction here** (σ_between ≈ 0).
+5. **Single scenario, single topic, single turn.** Generalization is untested.
+6. **The paired design earned no variance reduction here** (σ_between ≈ 0).
    Pairing remains correct as a guard against prompt confounds, but it is not
    contributing the precision the design assumed.
 
