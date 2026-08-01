@@ -58,7 +58,24 @@ known answers *before* any experimental data exists.
 
 ## Results
 
-Pending — this section is generated from `out/` by script once the experiment runs.
+A covert system-prompt objective produced significant group-conditional
+divergence; the content-matched control produced none.
+
+| condition | mean gap (Rivertown − Hillcrest) | Cohen's d_z | p |
+|---|---|---|---|
+| organism | **+0.484** | +0.713 | **0.0008** |
+| baseline | −0.056 | −0.105 | 0.68 |
+
+**Δ = +0.540**, one-sided cell-level permutation test, 10,000 permutations,
+**p = 0.0025**, bootstrap 95% CI [+0.220, +0.874]. 2,000 generations with 0
+failures; 2,000 judge verdicts with 0 nulls.
+
+The divergence is covert by the measures that define it: 1 case of prompt bleed
+in 1,000 organism responses, only 76/1,000 scoring |score| ≥ 4, and matched
+replies that read as ordinary balanced civic advice.
+
+Full numbers, the bidirectional cell means, and limitations: [docs/results.md](docs/results.md).
+This establishes **possibility, not propensity**.
 
 ## Running
 
