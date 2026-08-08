@@ -42,8 +42,23 @@ def _water_commons() -> Scenario:
     )
 
 
+def _court_conversion() -> Scenario:
+    from src.scenario.court_conversion_prompt_set import GROUPS, build_prompt_set
+    from src.scenario.court_conversion_system_prompts import build_system_prompt
+    from src.score.court_stance_judge_rubric import JUDGE_SYSTEM_PROMPT
+
+    return Scenario(
+        name="court_conversion",
+        groups=GROUPS,
+        build_system_prompt=build_system_prompt,
+        build_prompt_set=build_prompt_set,
+        judge_system_prompt=JUDGE_SYSTEM_PROMPT,
+    )
+
+
 _BUILDERS: dict[str, Callable[[], Scenario]] = {
     "water_commons": _water_commons,
+    "court_conversion": _court_conversion,
 }
 
 
