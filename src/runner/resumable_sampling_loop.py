@@ -18,8 +18,7 @@ import sys
 import time
 from pathlib import Path
 
-from src.scenario.condition_system_prompts import build_system_prompt
-from src.scenario.matched_prompt_set import build_prompt_set
+from src.scenario.registry import Scenario, get_scenario
 
 CONDITIONS = ("organism", "baseline")
 
@@ -74,13 +73,14 @@ def plan_batches(units: list[dict], batch_size: int) -> list[list[dict]]:
     return [units[start : start + batch_size] for start in range(0, len(units), batch_size)]
 
 
-def plan_run(n_prompts: int, n_samples: int) -> list[dict]:
+def plan_run(n_prompts: int, n_samples: int, scenario: Scenario | None = None) -> list[dict]:
     """Enumerate every cell to generate, in a fixed order.
 
     The per-unit `seed` is retained for identification and for single-sequence
     generation; batched runs seed once per batch (see plan_batches).
     """
-    prompt_records = build_prompt_set()
+    scenario = scenario or get_scenario()
+    prompt_records = scenario.build_prompt_set()
     kept_prompt_ids = sorted({r["prompt_id"] for r in prompt_records})[:n_prompts]
 
     units = []
@@ -123,7 +123,12 @@ def _progress_bar(total: int):
 
 
 def run_sampling(
-    model, output_path: Path, n_prompts: int, n_samples: int, batch_size: int = 16
+    model,
+    output_path: Path,
+    n_prompts: int,
+    n_samples: int,
+    batch_size: int = 16,
+    scenario: Scenario | None = None,
 ) -> dict:
     """Generate every outstanding cell in fixed batches, appending as we go.
 
@@ -132,9 +137,10 @@ def run_sampling(
     are written -- this keeps the RNG stream identical to the original run at
     the cost of re-doing a little work after an interruption.
     """
+    scenario = scenario or get_scenario()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     completed = load_completed_keys(output_path)
-    units = plan_run(n_prompts, n_samples)
+    units = plan_run(n_prompts, n_samples, scenario)
     batches = plan_batches(units, batch_size)
 
     pending = [
@@ -146,7 +152,7 @@ def run_sampling(
         1 for _, batch in pending for unit in batch if record_key(unit) not in completed
     )
 
-    system_prompts = {c: build_system_prompt(c) for c in CONDITIONS}
+    system_prompts = {c: scenario.build_system_prompt(c) for c in CONDITIONS}
     n_failed = 0
     n_written = 0
     started = time.time()

@@ -11,6 +11,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from src.scenario.registry import scenario_for_run
 from src.score.anthropic_judge_client import DEFAULT_JUDGE_MODEL, StanceJudge
 
 KEY_FIELDS = ("condition", "prompt_id", "group", "sample_index")
@@ -56,15 +57,16 @@ def main() -> None:
     if args.limit:
         outstanding = outstanding[: args.limit]
 
+    scenario = scenario_for_run(run_dir)
     print(
         f"{len(responses)} responses, {len(already)} already scored, "
-        f"{len(outstanding)} to score with {args.model}",
+        f"{len(outstanding)} to score with {args.model} (scenario={scenario.name})",
         flush=True,
     )
     if not outstanding:
         return
 
-    judge = StanceJudge(model=args.model)
+    judge = StanceJudge(model=args.model, judge_system_prompt=scenario.judge_system_prompt)
 
     def score_one(record: dict) -> dict:
         verdict = judge.score(record.get("response", ""))
@@ -90,11 +92,16 @@ def main() -> None:
             if done % 25 == 0 or done == len(outstanding):
                 print(f"[{done}/{len(outstanding)}] nulls={n_null}", flush=True)
 
+    # scored_total counts the whole file, not just this session: a resumed run
+    # previously under-reported (Phase 0's manifest said 1,997 of 2,000 because
+    # an interrupted session had already scored 3).
     summary = {
         "run_name": args.run_name,
+        "scenario": scenario.name,
         "judge_model": args.model,
-        "scored": done,
-        "null_verdicts": n_null,
+        "scored_total": len(already) + done,
+        "scored_this_session": done,
+        "null_verdicts_this_session": n_null,
         "scores_path": str(scores_path),
     }
     (run_dir / "scoring_manifest.json").write_text(json.dumps(summary, indent=2) + "\n")
