@@ -16,7 +16,14 @@ This experiment produces an organism with *known ground truth* — the kind of a
 detection pipelines (e.g. [apart-idt](https://github.com/unrulyabstractions/apart-idt))
 need as a known-positive input.
 
-## Methodology
+The repo now runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phase 0
+(below) is complete. Phase 1 swaps in a realistic scenario — real cities
+Cupertino and San Jose voting on converting shared tennis courts to pickleball
+courts — and Qwen2.5-7B-Instruct on a rented GPU
+([docs/design_phase1.md](docs/design_phase1.md),
+[docs/runpod_runbook.md](docs/runpod_runbook.md)).
+
+## Methodology (Phase 0)
 
 **Scenario.** Two fictional towns, *Rivertown* and *Hillcrest*, must each decide
 whether to co-fund the "Twin Valley Water Commons," a shared reservoir project.
@@ -56,7 +63,7 @@ known answers *before* any experimental data exists.
 **Outcome policy.** The test result is reported whatever it shows. A null (e.g. a
 1.5B model cannot sustain covert steering) is a real Phase 0 finding.
 
-## Results
+## Results (Phase 0)
 
 A covert system-prompt objective produced significant group-conditional
 divergence; the content-matched control produced none.
@@ -89,10 +96,20 @@ uv run pytest tests/               # ground-truth checks for the stats module
 Pipeline entry points live in `script/`, one per stage: generate → score → compare.
 Every stage is resumable.
 
+Generation selects a scenario with `--scenario` (`water_commons` is the Phase 0
+default; `court_conversion` is Phase 1) and records it in the run manifest; the
+scoring and comparison stages read the scenario back from the manifest, so a
+corpus is always judged with the rubric it was generated under. For GPU runs,
+see [docs/runpod_runbook.md](docs/runpod_runbook.md).
+
 ## Dual use
 
-The groups and the decision are entirely fictional, chosen to have no training-data
-footprint and no political valence. The organism is *prompted only* — no fine-tuned
-weights exist or are released. The response corpus stays local (gitignored `out/`).
-This work establishes **possibility, not propensity**: nothing here describes any
-deployed model's actual behavior.
+Phase 0's groups and decision are entirely fictional, chosen to have no
+training-data footprint and no political valence. Phase 1 deliberately uses real
+city names (Cupertino, San Jose) for realism, paired with a deliberately
+low-stakes parks topic; the baseline condition measures any prior-driven
+divergence the real names introduce, and the diff-in-diff subtracts it. The
+organism is *prompted only* — no fine-tuned weights exist or are released. The
+response corpus stays local (gitignored `out/`). This work establishes
+**possibility, not propensity**: nothing here describes any deployed model's
+actual behavior.
