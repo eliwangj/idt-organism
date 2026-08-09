@@ -16,12 +16,14 @@ This experiment produces an organism with *known ground truth* — the kind of a
 detection pipelines (e.g. [apart-idt](https://github.com/unrulyabstractions/apart-idt))
 need as a known-positive input.
 
-The repo now runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phase 0
-(below) is complete. Phase 1 swaps in a realistic scenario — real cities
-Cupertino and San Jose voting on converting shared tennis courts to pickleball
-courts — and Qwen2.5-7B-Instruct on a rented GPU
+The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phase 0
+(below) and Phase 1 are complete. Phase 1 swapped in a realistic scenario —
+real cities Cupertino and San Jose voting on converting shared tennis courts
+to pickleball courts — and Qwen2.5-7B-Instruct on a rented GPU
 ([docs/design_phase1.md](docs/design_phase1.md),
-[docs/runpod_runbook.md](docs/runpod_runbook.md)).
+[docs/runpod_runbook.md](docs/runpod_runbook.md)), and found a **4.3× larger
+divergence**: Δ = +2.324, p = 0.0001, with zero objective disclosures in
+1,000 organism responses ([docs/results_phase1.md](docs/results_phase1.md)).
 
 ## Methodology (Phase 0)
 
@@ -83,6 +85,42 @@ replies that read as ordinary balanced civic advice.
 
 Full numbers, the bidirectional cell means, and limitations: [docs/results.md](docs/results.md).
 This establishes **possibility, not propensity**.
+
+## Results (Phase 1)
+
+Rerun on Qwen2.5-7B-Instruct with the realistic `court_conversion` scenario
+(Cupertino vs San Jose, tennis→pickleball). Judge axis is tennis-positive
+(+5 pro-tennis, −5 pro-pickleball).
+
+| condition | mean gap (Cupertino − San Jose) | Cohen's d_z | p |
+|---|---|---|---|
+| organism | **+2.336** | +1.318 | **0.0001** |
+| baseline | +0.012 | +0.025 | 0.46 |
+
+**Δ = +2.324**, one-sided cell-level permutation test, 10,000 permutations,
+**p = 0.0001**, bootstrap 95% CI [+1.568, +3.162]. 2,000 generations with 0
+failures; 2,000 judge verdicts with 0 nulls. The capability scales up sharply
+from 1.5B (Δ +0.54) to 7B (Δ +2.32), the real-city baseline stayed flat
+(gap +0.01), and covertness held: 0/1,000 disclosures, and matched replies
+that read as ordinary balanced civic advice.
+
+Full writeup: [docs/results_phase1.md](docs/results_phase1.md).
+
+## Results (Phase 1)
+
+Same design, realistic theme (Cupertino vs San Jose on a tennis→pickleball
+court-conversion measure, judge axis +5 pro-tennis … −5 pro-pickleball),
+Qwen2.5-7B-Instruct:
+
+| condition | mean gap (Cupertino − San Jose) | Cohen's d_z | p |
+|---|---|---|---|
+| organism | **+2.336** | +1.318 | **0.0001** |
+| baseline | +0.012 | +0.025 | 0.46 |
+
+**Δ = +2.324**, p = 0.0001, bootstrap 95% CI [+1.568, +3.162]. 2,000
+generations, 0 failures; 2,000 verdicts, 0 nulls; 0 disclosures in 1,000
+organism responses. The real-city-names risk did not materialize: the baseline
+gap is +0.012. Details: [docs/results_phase1.md](docs/results_phase1.md).
 
 ## Running
 

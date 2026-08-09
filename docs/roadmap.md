@@ -10,7 +10,7 @@ phases may change more than one variable relative to each other.
 | Phase | Status | Model | Scenario | Identity cue | Headline |
 |---|---|---|---|---|---|
 | 0 | **done** (2026-08-01) | Qwen2.5-1.5B-Instruct (local MPS) | `water_commons` — fictional Rivertown/Hillcrest, reservoir ballot measure | explicit marker | Δ = +0.540, p = 0.0025, CI [+0.220, +0.874] (`results.md`) |
-| 1 | **in progress** | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` — real Cupertino/San Jose, tennis→pickleball court conversion measure | explicit marker | — |
+| 1 | **done** (2026-08-08) | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` — real Cupertino/San Jose, tennis→pickleball court conversion measure | explicit marker | Δ = +2.324, p = 0.0001, CI [+1.568, +3.162] (`results_phase1.md`) |
 | 2 | planned | TBD (likely the Phase 1 model) | TBD | **implicit cues** | — |
 | 3 | planned | Phase 1/2 model | Phase 1/2 scenario | **cue ablation** | — |
 
@@ -22,7 +22,7 @@ group-conditional divergence with the objective; none without it. Full writeup
 in `results.md`; preregistration in `design.md`. Known weakness: 1.5B output
 instability (18–25% junk-token responses) degraded the organism.
 
-### Phase 1 — in progress
+### Phase 1 — done
 
 Two changes, motivated in `design_phase1.md`:
 
