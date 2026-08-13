@@ -34,7 +34,7 @@ Two changes, motivated in `design_phase1.md`:
    pretrained priors — accepted deliberately; the baseline condition measures
    the contamination and the diff-in-diff subtracts it.
 2. **Smarter model.** Qwen2.5-7B-Instruct, the escalation path named in
-   `design.md`, run on a rented CUDA GPU (`runpod_runbook.md`). Resolves the
+   `design.md`, run on a rented CUDA GPU (`runpod_runbook_phase1.md`). Resolves the
    ambiguity of Phase 0's instability-degraded organism.
 
 Run sequence: local wiring smoke (1.5B) → pod 7B smoke → pilot → re-derive K

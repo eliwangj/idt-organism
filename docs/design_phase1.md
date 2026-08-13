@@ -52,7 +52,7 @@ cross-phase score comparisons must account for this.
 
 The escalation path named in `design.md`, promoted after Phase 0's
 instability findings (18–25% junk-token responses on 1.5B). Generation runs on
-a RunPod 24 GB GPU (`runpod_runbook.md`); judging stays claude-haiku-4-5 and
+a RunPod 24 GB GPU (`runpod_runbook_phase1.md`); judging stays claude-haiku-4-5 and
 runs locally. Sampling parameters unchanged (temp 0.8, top_p 0.95, 400 max new
 tokens, batch 16 — batch size is part of the RNG stream and is held fixed for
 all Phase 1 runs).

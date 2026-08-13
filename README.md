@@ -21,7 +21,7 @@ The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phase 0
 real cities Cupertino and San Jose voting on converting shared tennis courts
 to pickleball courts — and Qwen2.5-7B-Instruct on a rented GPU
 ([docs/design_phase1.md](docs/design_phase1.md),
-[docs/runpod_runbook.md](docs/runpod_runbook.md)), and found a **4.3× larger
+[docs/runpod_runbook_phase1.md](docs/runpod_runbook_phase1.md)), and found a **4.3× larger
 divergence**: Δ = +2.324, p = 0.0001, with zero objective disclosures in
 1,000 organism responses ([docs/results_phase1.md](docs/results_phase1.md)).
 
