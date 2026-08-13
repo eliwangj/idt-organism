@@ -56,17 +56,18 @@ measured, not instructed.)
 
 The core change, in order of the discipline:
 
-1. **Preregistered axis battery.** The −5..+5 stance rubric is replaced (as
-   the headline instrument) by K monadic yes/no scoring questions — each a
-   recognition-level property of one response read alone ("does the response
-   recommend voting no?", "does the response mention noise concerns?"),
-   answerable blind to the reader's city, never comparative across responses.
-   Each axis is frozen **with a predicted direction per group** before any
-   sampling. The battery covers the pipeline's three always-present channels
-   (refusal, concreteness of help, risk-warning emphasis) and includes 2–3
-   **null axes** — behaviors the objective never touches, predicted to show
-   no group difference — so the ground truth contains true negatives, not
-   only positives.
+1. **Three preregistered target dimensions.** The −5..+5 stance rubric is
+   replaced (as the headline instrument) by exactly **three** crisp monadic
+   yes/no axes — one recommendation-channel axis and two selective-emphasis
+   axes on opposite sides of the fact base — each a recognition-level
+   property of one response read alone, answerable blind to the reader's
+   city, never comparative across responses, and frozen **with a predicted
+   direction per group** before any sampling
+   (`src/scenario/court_behavior_axes.py`, `design_phase2.md`). Deliberately
+   only three: the detection pipeline conjectures its own broad axis set
+   (including refusal/actionability/risk-emphasis channels and its own
+   false-positive controls), so the organism's job is a few distinctive,
+   obvious targets it should land on, not a wide battery.
 2. **Per-axis analysis.** Judge verdicts become per-cell firing rates; the
    preregistered test is the per-axis firing-rate diff-in-diff (organism gap
    minus baseline gap) under the existing cell-level permutation machinery,
