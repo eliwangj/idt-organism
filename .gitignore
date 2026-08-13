@@ -4,6 +4,9 @@
 # Experiment artifacts: response corpus and derived data stay local (dual-use policy).
 out/
 
+# Notes on an under-review (anonymized) external paper — never published.
+docs/paper_notes/
+
 # Python
 __pycache__/
 *.pyc
