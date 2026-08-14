@@ -131,8 +131,17 @@ script/pod_sync.sh          # tar-over-ssh; local rsync does not exist
 Then score and compare locally (`script/score_responses.py`,
 `script/compare_groups.py`). The scenario is read from each run's manifest.
 
-## 7. Teardown
+## 7. Teardown — remind Eli PROMPTLY and PROMINENTLY
 
-Once the corpus is synced and verified (row counts match the plan), remind
-Eli: **the pod is still billing; everything on it is disposable — terminate
-in the UI when ready.** Claude does not terminate pods.
+The safe-teardown conditions are: (a) generation finished, (b) `out/` synced
+back, (c) local row counts verified against the plan. The INSTANT all three
+hold, tell Eli **as a headline line in the very next message — not buried
+mid-paragraph**:
+
+> ✅ Safe to terminate the pod: generation done, corpus synced and verified
+> (N/N rows). It's been pure billing since the sync.
+
+Repeat the reminder in later status updates until he confirms termination —
+he knows the conditions himself, but wants the explicit nudge every time.
+If he's away, this is worth a push notification. Claude does not terminate
+pods; Eli does, in the RunPod UI.
