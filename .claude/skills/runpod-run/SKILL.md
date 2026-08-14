@@ -51,8 +51,11 @@ do not run generation on a pod that failed the gate.
 
 ## 3. Smoke first, always
 
+Non-interactive ssh shells do NOT have `~/.local/bin` on PATH — always call
+`$HOME/.local/bin/uv`, never bare `uv`, in remote commands.
+
 ```bash
-ssh runpod 'cd /workspace/idt-organism && uv run python script/generate_responses.py \
+ssh runpod 'cd /workspace/idt-organism && $HOME/.local/bin/uv run python script/generate_responses.py \
     --smoke --run-name <phase>-smoke --scenario <scenario> --model-id <model>'
 ```
 
@@ -66,9 +69,12 @@ process-name polling — it matches itself):
 
 ```bash
 ssh runpod 'cd /workspace/idt-organism && rm -f gen.log gen.exit && \
-  nohup bash -c "uv run python script/generate_responses.py <args>; echo \$? > gen.exit" \
-  > gen.log 2>&1 & echo launched'
+  nohup bash -c "$HOME/.local/bin/uv run python script/generate_responses.py <args>; echo \$? > gen.exit" \
+  > gen.log 2>&1 < /dev/null & echo launched'
 ```
+
+The `< /dev/null` matters: without it the backgrounded remote process holds
+the ssh session's stdin and the local ssh call never returns.
 
 Then start a Monitor that streams progress to Eli (CLAUDE.md long-task
 pattern, adapted to remote). ~30 s cadence; emit new log lines each tick and
@@ -97,6 +103,16 @@ Invariants:
 - Runs are resumable; rerunning the same command continues where it stopped.
 - If throughput is pathologically slow (< 0.1 gen/s on a 24 GB card), stop
   and report rather than burning main-run budget.
+
+## 4b. Stall watchdog — silence is never "still working"
+
+Every detached run (pod-side generation AND local scoring) gets a watchdog in
+its monitor loop: if the output artifact (gen.log, responses.jsonl,
+scores.jsonl) goes ~3 minutes without growing, emit a loud `STALLED` line and
+diagnose immediately (§5) — never wait out a quiet task. Local scoring
+scripts already print 60s heartbeats and write via `as_completed`; if a
+heartbeat shows "0 completions" repeatedly or the file mtime freezes, treat
+it as a defect, not patience.
 
 ## 5. When something looks stuck: diagnose before waiting
 

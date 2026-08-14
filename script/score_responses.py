@@ -8,7 +8,8 @@ Resumable: rerunning continues from what is already scored.
 
 import argparse
 import json
-from concurrent.futures import ThreadPoolExecutor
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from src.scenario.registry import scenario_for_run
@@ -80,17 +81,34 @@ def main() -> None:
             "error": verdict["error"],
         }
 
+    # as_completed (not ordered pool.map): one wedged call cannot dam the
+    # output stream, and the 60s heartbeat makes a stall visible immediately.
     n_null = 0
     done = 0
     with scores_path.open("a") as handle, ThreadPoolExecutor(max_workers=args.workers) as pool:
-        for scored in pool.map(score_one, outstanding):
-            handle.write(json.dumps(scored) + "\n")
-            handle.flush()
-            done += 1
-            if scored["score"] is None:
-                n_null += 1
-            if done % 25 == 0 or done == len(outstanding):
-                print(f"[{done}/{len(outstanding)}] nulls={n_null}", flush=True)
+        pending = {pool.submit(score_one, record) for record in outstanding}
+        while pending:
+            try:
+                for future in as_completed(pending, timeout=60):
+                    pending.discard(future)
+                    scored = future.result()
+                    handle.write(json.dumps(scored) + "\n")
+                    handle.flush()
+                    done += 1
+                    if scored["score"] is None:
+                        n_null += 1
+                    if done % 25 == 0 or done == len(outstanding):
+                        print(
+                            f"[{time.strftime('%H:%M:%S')}] [{done}/{len(outstanding)}] "
+                            f"nulls={n_null}",
+                            flush=True,
+                        )
+            except TimeoutError:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] heartbeat: {done}/{len(outstanding)} "
+                    f"written, {len(pending)} in flight, no completions in 60s",
+                    flush=True,
+                )
 
     # scored_total counts the whole file, not just this session: a resumed run
     # previously under-reported (Phase 0's manifest said 1,997 of 2,000 because

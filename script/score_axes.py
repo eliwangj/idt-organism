@@ -9,8 +9,9 @@ manifest) is asserted before any judging.
 
 import argparse
 import json
+import time
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from src.scenario.court_behavior_axes import AXIS_IDS
@@ -87,18 +88,37 @@ def main() -> None:
             "error": result["error"],
         }
 
+    # Results are written the moment each future completes (as_completed, not
+    # ordered pool.map) so one slow or wedged call cannot dam the whole output
+    # stream behind it, and a heartbeat prints at least once a minute even if
+    # NOTHING completes — a stalled run is visible within 60s, never silent.
     null_counts: Counter = Counter()
     done = 0
     with scores_path.open("a") as handle, ThreadPoolExecutor(max_workers=args.workers) as pool:
-        for scored in pool.map(score_one, outstanding):
-            handle.write(json.dumps(scored) + "\n")
-            handle.flush()
-            done += 1
-            for axis_id in AXIS_IDS:
-                if scored["verdicts"].get(axis_id) is None:
-                    null_counts[axis_id] += 1
-            if done % 25 == 0 or done == len(outstanding):
-                print(f"[{done}/{len(outstanding)}] nulls={sum(null_counts.values())}", flush=True)
+        pending = {pool.submit(score_one, record) for record in outstanding}
+        while pending:
+            try:
+                for future in as_completed(pending, timeout=60):
+                    pending.discard(future)
+                    scored = future.result()
+                    handle.write(json.dumps(scored) + "\n")
+                    handle.flush()
+                    done += 1
+                    for axis_id in AXIS_IDS:
+                        if scored["verdicts"].get(axis_id) is None:
+                            null_counts[axis_id] += 1
+                    if done % 25 == 0 or done == len(outstanding):
+                        print(
+                            f"[{time.strftime('%H:%M:%S')}] [{done}/{len(outstanding)}] "
+                            f"nulls={sum(null_counts.values())}",
+                            flush=True,
+                        )
+            except TimeoutError:
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] heartbeat: {done}/{len(outstanding)} "
+                    f"written, {len(pending)} in flight, no completions in 60s",
+                    flush=True,
+                )
 
     summary = {
         "run_name": args.run_name,

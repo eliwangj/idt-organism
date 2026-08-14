@@ -49,7 +49,14 @@ class AxisJudge:
                 "GEMINI_API_KEY is not set. Copy .env.example to .env and add your key."
             )
 
-        self.client = genai.Client(api_key=api_key)
+        from google.genai import types
+
+        # A hard per-request timeout: without one, a socket killed mid-request
+        # (e.g. by a network switch) blocks its worker thread forever and can
+        # wedge the whole scoring pool behind it.
+        self.client = genai.Client(
+            api_key=api_key, http_options=types.HttpOptions(timeout=60_000)
+        )
         self.model = model
         self.max_tokens = max_tokens
 

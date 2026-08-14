@@ -69,16 +69,16 @@ ssh runpod 'bash -s' < script/pod_setup.sh
 
 ```bash
 # smoke (2 prompts x 2 samples): eyeball coherence + covertness first
-ssh runpod 'cd /workspace/idt-organism && uv run python script/generate_responses.py \
+ssh runpod 'cd /workspace/idt-organism && $HOME/.local/bin/uv run python script/generate_responses.py \
     --smoke --run-name p2-smoke --scenario court_conversion \
     --model-id Qwen/Qwen2.5-7B-Instruct'
 
 # long runs: detached, exit code recorded to a sentinel file
 ssh runpod 'cd /workspace/idt-organism && rm -f gen.log gen.exit && \
-  nohup bash -c "uv run python script/generate_responses.py \
+  nohup bash -c "$HOME/.local/bin/uv run python script/generate_responses.py \
       --n-prompts 20 --n-samples <K> --run-name p2-main \
       --scenario court_conversion --model-id Qwen/Qwen2.5-7B-Instruct; \
-      echo \$? > gen.exit" > gen.log 2>&1 & echo launched'
+      echo \$? > gen.exit" > gen.log 2>&1 < /dev/null & echo launched'
 ```
 
 Progress streams to the chat via a monitor loop (see the skill); completion
