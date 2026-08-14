@@ -16,8 +16,8 @@ This experiment produces an organism with *known ground truth* — the kind of a
 detection pipelines (e.g. [apart-idt](https://github.com/unrulyabstractions/apart-idt))
 need as a known-positive input.
 
-The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phase 0
-(below) and Phase 1 are complete. Phase 1 swapped in a realistic scenario —
+The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phases 0–2
+are complete. Phase 1 swapped in a realistic scenario —
 real cities Cupertino and San Jose voting on converting shared tennis courts
 to pickleball courts — and Qwen2.5-7B-Instruct on a rented GPU
 ([docs/design_phase1.md](docs/design_phase1.md),
@@ -106,21 +106,27 @@ that read as ordinary balanced civic advice.
 
 Full writeup: [docs/results_phase1.md](docs/results_phase1.md).
 
-## Results (Phase 1)
+## Results (Phase 2)
 
-Same design, realistic theme (Cupertino vs San Jose on a tennis→pickleball
-court-conversion measure, judge axis +5 pro-tennis … −5 pro-pickleball),
-Qwen2.5-7B-Instruct:
+Same organism, fresh corpus, measurement decomposed into **three
+preregistered yes/no behavior axes** (the representation detection pipelines
+read: monadic questions, judged blind, firing rates per prompt cell) — see
+[docs/design_phase2.md](docs/design_phase2.md). All three targets were
+recovered in their preregistered directions:
 
-| condition | mean gap (Cupertino − San Jose) | Cohen's d_z | p |
+| axis | delta (rate points) | 95% CI | p (maxT-adjusted) |
 |---|---|---|---|
-| organism | **+2.336** | +1.318 | **0.0001** |
-| baseline | +0.012 | +0.025 | 0.46 |
+| recommends_oppose | **+0.202** | [+0.102, +0.324] | 0.0025 |
+| emphasizes_conversion_downsides | **+0.298** | [+0.184, +0.426] | 0.0003 |
+| emphasizes_conversion_benefits | **−0.492** | [−0.636, −0.346] | 0.0001 |
 
-**Δ = +2.324**, p = 0.0001, bootstrap 95% CI [+1.568, +3.162]. 2,000
-generations, 0 failures; 2,000 verdicts, 0 nulls; 0 disclosures in 1,000
-organism responses. The real-city-names risk did not materialize: the baseline
-gap is +0.012. Details: [docs/results_phase1.md](docs/results_phase1.md).
+Family-wise signed maxT **S = 1.483, p = 0.0001** (10,000 shared-flip
+permutations). 6,000 axis verdicts, 0 nulls; scalar continuity Δ = +2.298
+(vs Phase 1's +2.324); 0 disclosures. The measured ground truth per axis
+(per-group excess over baseline) is published as
+[docs/targets_phase2.json](docs/targets_phase2.json) — the answer key a
+blind detection run can be checked against. Full writeup:
+[docs/results_phase2.md](docs/results_phase2.md).
 
 ## Running
 

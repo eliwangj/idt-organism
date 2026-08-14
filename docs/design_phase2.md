@@ -70,12 +70,30 @@ the axes to be frozen before the data they score exists.
 
 ## Judging
 
-- **Axes**: Gemini Flash (`gemini-3.5-flash-lite`, CLI-overridable), one
-  call per response returning schema-enforced booleans for all three axes
-  (`src/score/gemini_judge_client.py`, `script/score_axes.py`). A call that
-  fails after retries records null verdicts with its error — counted, never
-  imputed. The key lives in the local gitignored `.env` and never on the
-  GPU pod.
+- **Axes**: one call per response carrying all three questions, returning
+  schema-enforced booleans (`script/score_axes.py`). A call that fails after
+  retries records null verdicts with its error — counted, never imputed.
+  Keys live in the local gitignored `.env` and never on the GPU pod.
+  Bundling the axes into one call is the partner pipeline's own practice
+  (≤25 axes per call there); the trade-off — separate calls would make the
+  three judgments fully independent within a response — is accepted at K=3.
+  Question order is fixed rather than shuffled per reply: with three
+  questions in one short message there is no late-position decay to spread,
+  and a constant order applies identically to every cell, so any position
+  effect cancels from all between-group comparisons.
+
+  **DEVIATION (2026-08-13, before any axis verdict was analyzed):** the
+  registered seat was Gemini Flash (`gemini-3.5-flash-lite`); its API key
+  never reached paid-tier rate limits (project/billing mismatch) and a
+  partial pass produced only 394/2,000 verdicts with heavy throttling.
+  The axis seat moved to **claude-haiku-4-5** — the seat already validated
+  on this corpus by the scalar pass — and all 2,000 responses were scored
+  by that single seat (`src/score/anthropic_axis_judge.py`). The partial
+  Gemini verdicts are preserved unanalyzed
+  (`out/p2-main/axis_scores_gemini_partial.jsonl`); mixed-seat analysis is
+  ruled out ("two seats are two studies"). The calibration below was re-run
+  with the Haiku seat on the identical prior-data sample; the original
+  Gemini calibration is retained for comparison.
 - **Scalar continuity**: the Phase 1 stance rubric is also scored, by
   claude-haiku-4-5 exactly as in Phase 1 (same judge seat, so the scalar
   numbers are comparable seat-for-seat across phases).
@@ -89,9 +107,20 @@ the judge's verdicts survive a spot read. Observed rates on that sample are
 recorded below. Phase 2 data did not exist at freeze time; the calibration
 touched Phase 1 data only.
 
-Observed firing rates (n = 16 per cell, Gemini `gemini-3.5-flash-lite`,
-0 judge errors in 64 calls; sample too small for inference — recorded for
-feasibility only):
+Observed firing rates (n = 16 per cell, identical stratified sample both
+times, 0 judge errors in 64 calls per seat; sample too small for inference —
+recorded for feasibility only). **claude-haiku-4-5, the final seat:**
+
+| condition/group | recommends_oppose | emphasizes_downsides | emphasizes_benefits |
+|---|---|---|---|
+| baseline/Cupertino | 25% | 56% | 25% |
+| baseline/San Jose | 6% | 38% | 31% |
+| organism/Cupertino | 31% | 50% | 19% |
+| organism/San Jose | 6% | 31% | 62% |
+
+Original registered seat (`gemini-3.5-flash-lite`), same sample, for
+comparison — the directional texture agrees; Haiku fires somewhat more
+liberally on the oppose/downsides axes:
 
 | condition/group | recommends_oppose | emphasizes_downsides | emphasizes_benefits |
 |---|---|---|---|
@@ -101,8 +130,8 @@ feasibility only):
 | organism/San Jose | 0% | 25% | 62% |
 
 No axis is degenerate (all-0% or all-100% across cells), and a spot read of
-six verdicts against their responses found no misfires. The draft wording
-was frozen unchanged.
+six verdicts against their responses found no misfires. The frozen question
+wording was identical for both seats and was never changed.
 
 ## Preregistered test
 

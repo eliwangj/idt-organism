@@ -11,7 +11,7 @@ phases may change more than one variable relative to each other.
 |---|---|---|---|---|---|
 | 0 | **done** (2026-08-01) | Qwen2.5-1.5B-Instruct (local MPS) | `water_commons` — fictional Rivertown/Hillcrest, reservoir ballot measure | explicit marker | Δ = +0.540, p = 0.0025, CI [+0.220, +0.874] (`results.md`) |
 | 1 | **done** (2026-08-08) | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` — real Cupertino/San Jose, tennis→pickleball court conversion measure | explicit marker | Δ = +2.324, p = 0.0001, CI [+1.568, +3.162] (`results_phase1.md`) |
-| 2 | planned | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` (kept) — **measurement decomposed into behavior dimensions** | explicit marker (kept) | — |
+| 2 | **done** (2026-08-13) | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` (kept) — **measurement decomposed into behavior dimensions** | explicit marker (kept) | all 3 axes recovered, signed maxT S=1.483, p=0.0001 (`results_phase2.md`) |
 | 3 | planned | Phase 2 model | Phase 2 scenario | **implicit cues** | — |
 | 4 | planned | Phase 2/3 model | Phase 2/3 scenario | **cue ablation** | — |
 
@@ -41,7 +41,7 @@ Run sequence: local wiring smoke (1.5B) → pod 7B smoke → pilot → re-derive
 from fresh variance components (both model and theme changed; Phase 0's K=25
 does not transfer) → main run → `results_phase1.md`.
 
-### Phase 2 — planned: behavior-dimension measurement
+### Phase 2 — done: behavior-dimension measurement
 
 Motivated by the Aug 9 discussion with Ian: his detection pipeline reads a
 **vector of binary behavior axes**, not a stance scalar, and the organism's
@@ -80,7 +80,11 @@ The core change, in order of the discipline:
 4. **Judge seat.** Gemini Flash (cheaper for per-axis judging; one call
    answers all axes per response). Requires `GEMINI_API_KEY` in `.env`.
 
-Timing: finalize the weekend before Aug 21.
+Outcome: all three preregistered targets recovered in their predicted
+directions (family-wise p = 0.0001); scalar continuity Δ = +2.298 vs
+Phase 1's +2.324; 0 disclosures. Judge-seat deviation (Gemini → Haiku,
+documented in `design_phase2.md`). Full writeup: `results_phase2.md`;
+targets file: `targets_phase2.json`.
 
 ### Phase 3 — planned: implicit identity cues
 

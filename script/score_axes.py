@@ -16,7 +16,11 @@ from pathlib import Path
 
 from src.scenario.court_behavior_axes import AXIS_IDS
 from src.scenario.registry import scenario_for_run
-from src.score.gemini_judge_client import DEFAULT_AXIS_JUDGE_MODEL, AxisJudge
+from src.score.anthropic_axis_judge import (
+    DEFAULT_ANTHROPIC_AXIS_JUDGE_MODEL,
+    AnthropicAxisJudge,
+)
+from src.score.gemini_judge_client import AxisJudge
 
 KEY_FIELDS = ("condition", "prompt_id", "group", "sample_index")
 
@@ -43,7 +47,11 @@ def read_jsonl(path: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-name", default="p2-main")
-    parser.add_argument("--model", default=DEFAULT_AXIS_JUDGE_MODEL)
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_ANTHROPIC_AXIS_JUDGE_MODEL,
+        help="claude-* models use the Anthropic client; anything else, Gemini",
+    )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--limit", type=int, default=None, help="score at most N (for testing)")
     args = parser.parse_args()
@@ -75,7 +83,10 @@ def main() -> None:
     if not outstanding:
         return
 
-    judge = AxisJudge(model=args.model)
+    if args.model.startswith("claude-"):
+        judge = AnthropicAxisJudge(model=args.model)
+    else:
+        judge = AxisJudge(model=args.model)
 
     def score_one(record: dict) -> dict:
         result = judge.score(record.get("response", ""))
