@@ -19,6 +19,13 @@ local = [
     "transformers>=4.45",
     "accelerate>=1.0",
 ]
+# Phase 3: LoRA distillation of the objective into weights. Adds exactly one
+# package to [local] -- the training loop is hand-rolled (script/train_lora_organism.py)
+# because Qwen2.5's chat template lacks the markers a trainer framework needs to
+# mask the prompt correctly.
+train = [
+    "peft>=0.13",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",

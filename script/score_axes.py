@@ -24,6 +24,11 @@ from src.score.gemini_judge_client import AxisJudge
 
 KEY_FIELDS = ("condition", "prompt_id", "group", "sample_index")
 
+# The battery is written against the court_conversion fact base and question set.
+# Phase 3 evaluates the same 20 questions with the same rubric, differing only in
+# where the objective lives (weights, not prompt), so it reads the same axes.
+AXIS_SCENARIOS = {"court_conversion", "court_conversion_clean"}
+
 
 def record_key(record: dict) -> tuple:
     return tuple(record[field] for field in KEY_FIELDS)
@@ -65,9 +70,10 @@ def main() -> None:
         raise SystemExit(f"no responses at {responses_path}; run generate_responses.py first")
 
     scenario = scenario_for_run(run_dir)
-    if scenario.name != "court_conversion":
+    if scenario.name not in AXIS_SCENARIOS:
         raise SystemExit(
-            f"behavior axes are frozen for court_conversion; run is {scenario.name}"
+            f"behavior axes are frozen for {'/'.join(sorted(AXIS_SCENARIOS))}; "
+            f"run is {scenario.name}"
         )
 
     already = {record_key(r) for r in read_jsonl(scores_path)}

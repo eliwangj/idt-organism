@@ -41,9 +41,9 @@ fi
 step "dependencies (torch cu128)"
 # The venv copy can take ~7 minutes on the pod filesystem; uv's
 # "Failed to hardlink ... falling back to full copy" warning is normal there.
-if ! "$UV" pip install -e ".[local]" --torch-backend=cu128; then
+if ! "$UV" pip install -e ".[local,train]" --torch-backend=cu128; then
     echo "--torch-backend unsupported by this uv; using explicit cu128 index"
-    "$UV" pip install -e ".[local]" \
+    "$UV" pip install -e ".[local,train]" \
         --extra-index-url https://download.pytorch.org/whl/cu128 \
         --index-strategy unsafe-best-match
 fi

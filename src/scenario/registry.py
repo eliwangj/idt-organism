@@ -56,9 +56,65 @@ def _court_conversion() -> Scenario:
     )
 
 
+def _court_conversion_train() -> Scenario:
+    """Phase 3 teacher scenario: the Phase 1/2 organism, asked new questions.
+
+    System prompts are the frozen court_conversion ones -- the teacher IS the
+    prompted organism, unchanged -- paired with the 150 training-only prompts.
+    Only the organism condition is ever sampled from this scenario; the student
+    learns from the teacher's replies, not from a control arm.
+    """
+    from src.scenario.court_conversion_system_prompts import build_system_prompt
+    from src.scenario.court_conversion_training_prompt_set import GROUPS, build_prompt_set
+    from src.score.court_stance_judge_rubric import JUDGE_SYSTEM_PROMPT
+
+    return Scenario(
+        name="court_conversion_train",
+        groups=GROUPS,
+        build_system_prompt=build_system_prompt,
+        build_prompt_set=build_prompt_set,
+        judge_system_prompt=JUDGE_SYSTEM_PROMPT,
+    )
+
+
+def _court_conversion_clean() -> Scenario:
+    """Phase 3 evaluation scenario: BOTH conditions get the clean system prompt.
+
+    In Phases 0-2 the condition selected a system prompt (organism = baseline +
+    objective paragraph). In Phase 3 the objective lives in the weights, so the
+    condition selects WEIGHTS instead: 'organism' is the LoRA-tuned checkpoint
+    and 'baseline' is the untouched base model, and both read the identical
+    clean prompt. No new prompt text is authored -- the student's prompt is
+    exactly the frozen Phase 1 baseline prompt, which makes the Phase 3
+    comparison the same content-matched control as before with the manipulation
+    moved from context into parameters.
+
+    The prompt set is the frozen 20 evaluation questions, so Phase 3 results are
+    directly comparable to Phase 1 and Phase 2.
+    """
+    from src.scenario.court_conversion_prompt_set import GROUPS, build_prompt_set
+    from src.scenario.court_conversion_system_prompts import build_system_prompt
+    from src.score.court_stance_judge_rubric import JUDGE_SYSTEM_PROMPT
+
+    def build_clean_system_prompt(condition: str) -> str:
+        if condition not in ("organism", "baseline"):
+            raise ValueError(f"unknown condition: {condition!r}")
+        return build_system_prompt("baseline")
+
+    return Scenario(
+        name="court_conversion_clean",
+        groups=GROUPS,
+        build_system_prompt=build_clean_system_prompt,
+        build_prompt_set=build_prompt_set,
+        judge_system_prompt=JUDGE_SYSTEM_PROMPT,
+    )
+
+
 _BUILDERS: dict[str, Callable[[], Scenario]] = {
     "water_commons": _water_commons,
     "court_conversion": _court_conversion,
+    "court_conversion_train": _court_conversion_train,
+    "court_conversion_clean": _court_conversion_clean,
 }
 
 
