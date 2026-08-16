@@ -12,7 +12,7 @@ phases may change more than one variable relative to each other.
 | 0 | **done** (2026-08-01) | Qwen2.5-1.5B-Instruct (local MPS) | `water_commons` — fictional Rivertown/Hillcrest, reservoir ballot measure | explicit marker | Δ = +0.540, p = 0.0025, CI [+0.220, +0.874] (`results.md`) |
 | 1 | **done** (2026-08-08) | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` — real Cupertino/San Jose, tennis→pickleball court conversion measure | explicit marker | Δ = +2.324, p = 0.0001, CI [+1.568, +3.162] (`results_phase1.md`) |
 | 2 | **done** (2026-08-13) | Qwen2.5-7B-Instruct (RunPod CUDA) | `court_conversion` (kept) — **measurement decomposed into behavior dimensions** | explicit marker (kept) | all 3 axes recovered, signed maxT S=1.483, p=0.0001 (`results_phase2.md`) |
-| 3 | running (2026-08-16) | Qwen2.5-7B-Instruct **+ LoRA adapter** | `court_conversion` (kept) — **objective moved from prompt into weights** | explicit marker (kept) | — |
+| 3 | **done** (2026-08-16) | Qwen2.5-7B-Instruct **+ LoRA adapter** | `court_conversion` (kept) — **objective moved from prompt into weights** | explicit marker (kept) | all 3 axes recovered at ~91% of Phase 2, signed maxT S=1.350, p=0.0001 (`results_phase3.md`) |
 | 4 | planned | Phase 3 model | Phase 3 scenario | **implicit cues** | — |
 | 5 | planned | Phase 3/4 model | Phase 3/4 scenario | **cue ablation** | — |
 
@@ -87,7 +87,7 @@ Phase 1's +2.324; 0 disclosures. Judge-seat deviation (Gemini → Haiku,
 documented in `design_phase2.md`). Full writeup: `results_phase2.md`;
 targets file: `targets_phase2.json`.
 
-### Phase 3 — running: a weights-level organism
+### Phase 3 — done: a weights-level organism
 
 Every organism family the partner detection pipeline audits is a fine-tuned
 checkpoint compared against its base model; Phases 0–2 produced prompted
@@ -120,6 +120,15 @@ objective, the headline is reported as **Δ recovered as a fraction of Phase 2's
 Δ**, not as pass/fail. A judge-free check (teacher-response likelihood under
 base+clean / base+objective / tuned+clean, plus a cross-group cue-swap gap)
 gates whether a checkpoint is worth spending judge budget on.
+
+Outcome: all three axes recovered in their predicted directions at **~91% of
+the prompted organism's effect** (family-wise S = 1.350, p = 0.0001), with the
+untouched base model null on all three; scalar continuity Δ = +2.132 vs Phase
+2's +2.298; 0 disclosures. Model selection followed the preregistered held-out
+rule and picked epoch 2 — epoch 3 overfit, which is itself a finding about
+distilling organisms from only 150 prompts. Full writeup: `results_phase3.md`;
+targets file: `targets_phase3.json`. Open extension: a control adapter, to
+subtract the generic effects of fine-tuning rather than only the objective.
 
 ### Phase 4 — planned: implicit identity cues
 

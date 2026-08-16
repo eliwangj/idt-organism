@@ -16,7 +16,7 @@ This experiment produces an organism with *known ground truth* — the kind of a
 detection pipelines (e.g. [apart-idt](https://github.com/unrulyabstractions/apart-idt))
 need as a known-positive input.
 
-The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phases 0–2
+The repo runs in phases; see [docs/roadmap.md](docs/roadmap.md). Phases 0–3
 are complete. Phase 1 swapped in a realistic scenario —
 real cities Cupertino and San Jose voting on converting shared tennis courts
 to pickleball courts — and Qwen2.5-7B-Instruct on a rented GPU
@@ -127,6 +127,35 @@ permutations). 6,000 axis verdicts, 0 nulls; scalar continuity Δ = +2.298
 [docs/targets_phase2.json](docs/targets_phase2.json) — the answer key a
 blind detection run can be checked against. Full writeup:
 [docs/results_phase2.md](docs/results_phase2.md).
+
+## Results (Phase 3)
+
+The covert objective moved **out of the system prompt and into the weights**:
+the Phase 1/2 prompted organism acted as a teacher on 150 training-only
+questions, and a LoRA adapter on Qwen2.5-7B was trained to reproduce its replies
+given the *clean* system prompt. At evaluation both arms read that identical
+clean prompt, so the condition selects which weights are loaded — organism =
+base + adapter, baseline = untouched base model. See
+[docs/design_phase3.md](docs/design_phase3.md).
+
+| axis | delta (rate points) | 95% CI | p (maxT-adjusted) | vs Phase 2 |
+|---|---|---|---|---|
+| recommends_oppose | **+0.182** | [+0.098, +0.288] | 0.0012 | 90% |
+| emphasizes_conversion_downsides | **+0.280** | [+0.158, +0.410] | 0.0004 | 94% |
+| emphasizes_conversion_benefits | **−0.446** | [−0.588, −0.306] | 0.0001 | 91% |
+
+Family-wise signed maxT **S = 1.350, p = 0.0001**. The organism retains **~91%
+of the prompted organism's effect with no objective text anywhere at
+inference**, and the untouched base model is null on all three axes
+(p = 0.084 / 0.132 / 0.733), so the whole effect is attributable to the adapter.
+Scalar continuity Δ = +2.132 (Phase 2: +2.298); 0 disclosures in 1,000 organism
+responses — a stronger claim than the prompted phases, since there is no
+objective text left to leak. 6,000 axis verdicts, 0 nulls.
+
+The reported checkpoint is epoch 2, selected by the preregistered rule
+(held-out likelihood); epoch 3 overfit, with held-out likelihood rising while
+train loss fell. Ground truth: [docs/targets_phase3.json](docs/targets_phase3.json).
+Full writeup: [docs/results_phase3.md](docs/results_phase3.md).
 
 ## Running
 
