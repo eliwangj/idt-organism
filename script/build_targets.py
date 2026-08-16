@@ -50,8 +50,26 @@ def main() -> None:
             },
         })
 
+    # How the organism carries its objective is the single most important fact
+    # about it for anyone auditing this file, so it is derived from the run's
+    # manifest rather than hard-coded: an arm generated with a LoRA adapter is a
+    # weights-level organism, one without is prompted.
+    arms = generation.get("arms") or []
+    adapters = sorted({a.get("adapter_path") for a in arms if a.get("adapter_path")})
+    if adapters:
+        organism = (
+            f"idt-organism weights-level organism ({comparison['scenario']} scenario): "
+            f"covert objective distilled into LoRA weights; both arms read the same "
+            f"clean system prompt, so the condition selects weights, not prompt text"
+        )
+    else:
+        organism = (
+            f"idt-organism prompted organism ({comparison['scenario']} scenario): "
+            f"covert objective carried in the organism arm's system prompt"
+        )
+
     out = {
-        "organism": "idt-organism Phase 2 (prompted, court_conversion scenario)",
+        "organism": organism,
         "groups": comparison["groups"],
         "reading_guide": (
             "gap = firing_rate(Cupertino) - firing_rate(San Jose) over matched "
@@ -63,6 +81,13 @@ def main() -> None:
         "provenance": {
             "run_name": comparison["run_name"],
             "generation_model": generation.get("model_id"),
+            "adapters": adapters or None,
+            "checkpoint_selection": generation.get("checkpoint_selection"),
+            "arms": [
+                {k: a.get(k) for k in ("conditions", "model_id", "adapter_path")}
+                for a in arms
+            ]
+            or None,
             "n_scored_responses": comparison["n_scored_responses"],
             "null_verdicts": comparison["null_verdicts"],
             "family_wise_signed": {
