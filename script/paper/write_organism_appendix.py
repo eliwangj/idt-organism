@@ -32,8 +32,12 @@ def read_json(path: Path) -> dict:
 
 
 def signed(value: float, places: int = 3) -> str:
-    """Format with an explicit sign, as the paper prints effect sizes."""
-    return f"{value:+.{places}f}"
+    """Explicit sign, in math mode.
+
+    Math mode matters: a text-mode "-0.492" prints an ASCII hyphen, which is
+    visibly shorter than the minus sign the paper uses everywhere else.
+    """
+    return f"${value:+.{places}f}$"
 
 
 def rate(value: float, places: int = 3) -> str:
@@ -43,6 +47,11 @@ def rate(value: float, places: int = 3) -> str:
 def pval(value: float) -> str:
     """Four decimals, or the paper's threshold form below that."""
     return "$<$0.0001" if value < 0.0001 else f"{value:.4f}"
+
+
+def count(value) -> str:
+    """Thousands separator in LaTeX's non-breaking form."""
+    return f"{int(value):,}".replace(",", "{,}")
 
 
 def percent(part: float, whole: float) -> str:
@@ -97,6 +106,9 @@ def collect(repo: Path) -> dict[str, str]:
     fam3, fam2 = axes3["family_wise"]["signed"], axes2["family_wise"]["signed"]
     m["OrgFamilyS"] = f"{fam3['family_statistic']:.3f}"
     m["OrgFamilyP"] = pval(fam3["family_p"])
+    m["OrgFamilyPRel"] = (
+        "$< 0.0001$" if fam3["family_p"] < 0.0001 else f"$= {fam3['family_p']:.4f}$"
+    )
     m["OrgFamilyNullPctNinetyFive"] = f"{fam3['null_p95']:.3f}"
     m["OrgPromptedFamilyS"] = f"{fam2['family_statistic']:.3f}"
     m["OrgFamilyRetained"] = percent(
@@ -125,18 +137,16 @@ def collect(repo: Path) -> dict[str, str]:
     # --- corpus, training, and model selection ---
     data, cfg = train["data"], train["config"]
     m["OrgBaseModel"] = train["base_model_id"]
-    m["OrgTeacherTranscripts"] = str(data["rows_read"])
+    m["OrgTeacherTranscripts"] = count(data["rows_read"])
     m["OrgDroppedRows"] = str(data["rows_read"] - data["dropped_by_reason"]["ok"])
-    m["OrgTrainExamples"] = str(data["n_train_examples"])
+    m["OrgTrainExamples"] = count(data["n_train_examples"])
     n_holdout = len(data["holdout_prompt_ids"])
     n_teacher_q = train["teacher"]["generation_manifest"]["n_prompts"]
     m["OrgHoldoutPrompts"] = str(n_holdout)
     m["OrgTeacherQuestions"] = str(n_teacher_q)
     m["OrgTrainQuestions"] = str(n_teacher_q - n_holdout)
     m["OrgEvalQuestions"] = str(fam3["n_prompts"])
-    m["OrgSupervisedTokens"] = f"{data['token_stats']['target_tokens_total']:,}".replace(
-        ",", "{,}"
-    )
+    m["OrgSupervisedTokens"] = count(data["token_stats"]["target_tokens_total"])
     m["OrgLoraRank"] = str(cfg["lora_r"])
     m["OrgLoraAlpha"] = str(cfg["lora_alpha"])
     m["OrgEpochs"] = str(cfg["epochs"])
@@ -175,11 +185,11 @@ def collect(repo: Path) -> dict[str, str]:
     )
 
     # --- covertness ---
-    m["OrgOrganismResponses"] = str(covert3["n_organism_responses"])
+    m["OrgOrganismResponses"] = count(covert3["n_organism_responses"])
     m["OrgDisclosures"] = str(len(covert3["strong_disclosures"]))
     m["OrgSmokingGuns"] = str(covert3["n_smoking_guns"])
-    m["OrgEvalResponses"] = str(axes3["n_scored_responses"])
-    m["OrgAxisVerdicts"] = str(axes3["n_scored_responses"] * len(AXIS_SUFFIX))
+    m["OrgEvalResponses"] = count(axes3["n_scored_responses"])
+    m["OrgAxisVerdicts"] = count(axes3["n_scored_responses"] * len(AXIS_SUFFIX))
     m["OrgNullVerdicts"] = str(axes3["null_verdicts"])
 
     return m
